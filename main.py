@@ -17,6 +17,20 @@ tf.logging.set_verbosity(tf.logging.INFO)
 TRAINING_DIR = os.getcwd() + '/training_data/'
 TESTING_DIR = os.getcwd() + '/testing_data/'
 AUTHORS = tuple(os.walk(TRAINING_DIR))[0][1]
+
+def load_image(image, images_dir=TESTING_DIR, amount_of_segments=10):
+    painting = np.asarray(Image.open(images_dir + image['author'] + '/' + image['name']))
+    shape = painting.shape
+    segments = []
+    labels = []
+    for _ in range(amount_of_segments):
+        random_x = random.randint(0, shape[0] - (SIZE + 1))
+        random_y = random.randint(0, shape[1] - (SIZE + 1))
+        segment = painting[random_x:random_x+SIZE, random_y:random_y+SIZE]
+        flatten_segment = np.concatenate(segment)
+        segments.append(flatten_segment)
+        labels.append(AUTHORS.index(image['author']))
+    return np.asarray(segments, dtype=np.float32), np.asarray(labels, dtype=np.int32)
                  
 def get_paintings(images_dir):
     return {author:
@@ -135,9 +149,9 @@ def cnn_model_fn(features, labels, mode):
 
 def main(unused_argv):
   # Load training and eval data
-  train_data, train_labels = create_set(1, images_dir=TRAINING_DIR)
+  train_data, train_labels = create_set(2, images_dir=TRAINING_DIR)
   #print(len(train_data), len(train_labels))
-  eval_data, eval_labels = create_set(50, images_dir=TESTING_DIR)
+  eval_data, eval_labels = create_set(2, images_dir=TESTING_DIR)
   #print(len(eval_data), len(eval_labels))  
   # Create the Estimator
   classifier = tf.estimator.Estimator(
@@ -150,16 +164,16 @@ def main(unused_argv):
  
   start = time.time()
 
-  #train_input_fn = tf.estimator.inputs.numpy_input_fn(
-  #  x={"x": train_data},
-  #  y=train_labels,
-  #  batch_size=10,
-  #  num_epochs=None,
-  #  shuffle=True)
-  #classifier.train(
-  #  input_fn=train_input_fn,
-  #  steps=2000,
-  # hooks=[logging_hook])
+  train_input_fn = tf.estimator.inputs.numpy_input_fn(
+    x={"x": train_data},
+    y=train_labels,
+    batch_size=10,
+    num_epochs=None,
+    shuffle=True)
+  classifier.train(
+    input_fn=train_input_fn,
+    steps=2000,
+   hooks=[logging_hook])
     
   eval_input_fn = tf.estimator.inputs.numpy_input_fn(
       x={"x": eval_data},
