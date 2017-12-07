@@ -18,17 +18,19 @@ TRAINING_DIR = os.getcwd() + '/training_data/'
 TESTING_DIR = os.getcwd() + '/testing_data/'
 AUTHORS = tuple(os.walk(TRAINING_DIR))[0][1]
 
+def segmentize(painting):
+    shape = painting.shape
+    random_x = random.randint(0, shape[0] - (SIZE + 1))
+    random_y = random.randint(0, shape[1] - (SIZE + 1))
+    segment = painting[random_x:random_x+SIZE, random_y:random_y+SIZE]
+    return np.concatenate(segment)
+    
 def load_image(image, images_dir=TESTING_DIR, amount_of_segments=10):
     painting = np.asarray(Image.open(images_dir + image['author'] + '/' + image['name']))
-    shape = painting.shape
     segments = []
     labels = []
-    for _ in range(amount_of_segments):
-        random_x = random.randint(0, shape[0] - (SIZE + 1))
-        random_y = random.randint(0, shape[1] - (SIZE + 1))
-        segment = painting[random_x:random_x+SIZE, random_y:random_y+SIZE]
-        flatten_segment = np.concatenate(segment)
-        segments.append(flatten_segment)
+    for _ in range(amount_of_segments):        
+        segments.append(segmentize(painting))
         labels.append(AUTHORS.index(image['author']))
     return np.asarray(segments, dtype=np.float32), np.asarray(labels, dtype=np.int32)
                  
@@ -47,36 +49,19 @@ def create_set(iterations, images_dir):
         for author in paintings:
             for painting in paintings[author]:
                 painting_arr = paintings[author][painting]
-                shape = painting_arr.shape
-                random_x = random.randint(0, shape[0] - (SIZE + 1))
-                random_y = random.randint(0, shape[1] - (SIZE + 1))
-                segment = painting_arr[random_x:random_x+SIZE, random_y:random_y+SIZE]
-                flatten_segment = np.concatenate(segment)
-                #flatten_segment = np.concatenate(segment).ravel()
-                #flatten_segment = flatten_segment[::3]
-                #print(len(flatten_segment), painting)
-                #yield (np.array(segment, dtype=np.float32), np.asarray(AUTHORS.index(author), dtype=np.int32))
-                images.append(flatten_segment)
+                images.append(segmentize(painting_arr))
                 labels.append(AUTHORS.index(author))
     return np.asarray(images, dtype=np.float32), np.asarray(labels, dtype=np.int32)
     
 def test_set(iterations, images_dir, author_i):
     images = []
     labels = []
-    for _ in range(iterations):
-        
+    for _ in range(iterations):   
         paintings = get_paintings(images_dir)
         author = AUTHORS[author_i]
         for painting in paintings[author]:
             painting_arr = paintings[author][painting]
-            shape = painting_arr.shape
-            random_x = random.randint(0, shape[0] - (SIZE + 1))
-            random_y = random.randint(0, shape[1] - (SIZE + 1))
-            segment = painting_arr[random_x:random_x+SIZE, random_y:random_y+SIZE]
-            flatten_segment = np.concatenate(segment)
-            #flatten_segment = flatten_segment[::3]
-            #print(len(flatten_segment), painting)
-            images.append(flatten_segment)
+            images.append(segmentize(painting_arr))
             labels.append(AUTHORS.index(author))
     return np.asarray(images, dtype=np.float32), np.asarray(labels, dtype=np.int32)
     
